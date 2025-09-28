@@ -1,0 +1,41 @@
+/*  Real-time Chat Application Programming Exercise
+Problem Statement
+Create a simple real-time chat application where users can join different chat rooms or createtheir own chat rooms. Users should be able to send and receive messages in real-time. */
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+// ====================== Logger ======================
+class Logger {
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
+    public static void log(String level, String msg) {
+        String t = LocalDateTime.now().format(FMT);
+        System.out.println("[" + t + "][" + level + "] " + msg);
+    }
+}
+
+// ====================== Models ======================
+class Message {
+    String sender, content, target;
+    boolean isPrivate;
+    LocalDateTime timestamp = LocalDateTime.now();
+
+    Message(String sender, String content) { this(sender, content, false, null); }
+    Message(String sender, String content, boolean isPrivate, String target) {
+        this.sender = sender; this.content = content; this.isPrivate = isPrivate; this.target = target;
+    }
+    String formatted() { return timestamp.format(DateTimeFormatter.ofPattern("HH:mm:ss")); }
+}
+
+interface IChatObserver { void notify(Message msg); }
+
+class User {
+    String username; IChatObserver adapter; ChatRoom room;
+    User(String username, IChatObserver adapter){ this.username=username; this.adapter=adapter; }
+    void receive(Message msg){ adapter.notify(msg); }
+}
+
+// ====================== Adapte
