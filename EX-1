@@ -1,0 +1,196 @@
+/* Problem Statement on Design patterns
+Come up creatively with six different use cases to demonstrate your understanding of thefollowing software design patterns by coding the same.
+1. Two use cases to demonstrate two behavioural design pattern.
+2. Two use cases to demonstrate two creational design pattern. 
+3.  Two use cases to demonstrate two structural design pattern */
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
+public class DesignPatternsDemo {
+
+    public static void main(String[] args) {
+        boolean running = true;
+        while (running) {
+            try {
+                System.out.println("\n===== DESIGN PATTERNS DEMO =====");
+                System.out.println("1. Observer Pattern (Smart Home)");
+                System.out.println("2. Strategy Pattern (Navigation)");
+                System.out.println("3. Builder Pattern (Coffee Machine)");
+                System.out.println("4. Prototype Pattern (Character Skin)");
+                System.out.println("5. Adapter Pattern (Payment System)");
+                System.out.println("6. Composite Pattern (Home Construction)");
+                System.out.println("7. Exit");
+                
+                int choice = InputHandler.readNumber("Select option (1-7): ", 1, 7);
+                switch (choice) {
+                    case 1 -> runObserverDemo();
+                    case 2 -> runStrategyDemo();
+                    case 3 -> runBuilderDemo();
+                    case 4 -> runPrototypeDemo();
+                    case 5 -> runAdapterDemo();
+                    case 6 -> runCompositeDemo();
+                    case 7 -> running = false;
+                }
+            } catch (Exception e) {
+                Logger.error("Error occurred", e);
+            }
+        }
+        Logger.info("Application terminated");
+    }
+
+    // ====================== BEHAVIORAL PATTERNS ======================
+    private static void runObserverDemo() throws Exception {
+        TemperatureSensor sensor = new TemperatureSensor();
+        sensor.attach(temp -> System.out.println("Thermostat adjusts to " + temp + "°C"));
+        sensor.attach(temp -> System.out.println("Fan is " + (temp > 28 ? "ON" : "OFF")));
+
+        int temp = InputHandler.readNumber("Enter temperature (-50 to 60 °C): ", -50, 60);
+        sensor.setTemperature(temp);
+    }
+
+    private static void runStrategyDemo() throws Exception {
+        RouteStrategy fastest = (s, e) -> "Fastest route: " + s + " → Highway → " + e;
+        RouteStrategy scenic = (s, e) -> "Scenic route: " + s + " → Coastal Drive → " + e;
+
+        String start = InputHandler.readString("Enter start location");
+        String end = InputHandler.readString("Enter destination");
+
+        int choice = InputHandler.readNumber("1. Fastest  2. Scenic. Choose: ", 1, 2);
+        RouteStrategy strategy = choice == 1 ? fastest : scenic;
+        System.out.println(strategy.calculateRoute(start, end));
+    }
+
+    // ====================== CREATIONAL PATTERNS ======================
+    private static void runBuilderDemo() {
+        Coffee coffee = new CoffeeBuilder()
+                .setBase("Espresso")
+                .addMilk("Steamed")
+                .addSyrup("Chocolate")
+                .addFoam()
+                .build();
+        System.out.println("Coffee created: " + coffee);
+    }
+
+    private static void runPrototypeDemo() {
+        Knight base = new Knight("Steel", "Sword");
+        Knight dragon = base.clone();
+        dragon.setArmor("Dragon Scale");
+        dragon.setWeapon("Dragon Lance");
+        System.out.println("Base Knight: " + base);
+        System.out.println("Custom Knight: " + dragon);
+    }
+
+    // ====================== STRUCTURAL PATTERNS ======================
+    private static void runAdapterDemo() throws Exception {
+        LegacyTerminal legacy = new LegacyTerminal();
+        PaymentAdapter adapter = new PaymentAdapter(legacy);
+
+        String card = InputHandler.readString("Enter card number");
+        double amount = InputHandler.readNumber("Enter amount ($): ", 0.01, Double.MAX_VALUE);
+
+        boolean success = RetryUtil.executeWithRetry(() -> adapter.pay(card, amount), 3, 100);
+        System.out.println(success ? "✅ Payment successful!" : "❌ Payment failed");
+    }
+
+    private static void runCompositeDemo() {
+        Wall room = new Wall();
+        Wall wall1 = new Wall(); wall1.add(new Window());
+        Wall wall2 = new Wall(); wall2.add(new Door());
+        room.add(wall1); room.add(wall2); room.add(new Wall());
+        room.display(0);
+    }
+
+    // ====================== UTILITY CLASSES ======================
+    static class Logger {
+        static void info(String msg) { System.out.println("[INFO] " + msg); }
+        static void error(String msg, Exception e) { System.err.println("[ERROR] " + msg); e.printStackTrace(); }
+    }
+
+    static class InputHandler {
+        private static final BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        static String readString(String prompt) throws Exception {
+            System.out.print(prompt + ": "); return reader.readLine().trim();
+        }
+        static int readNumber(String prompt, int min, int max) throws Exception {
+            int val = Integer.parseInt(readString(prompt));
+            if(val<min || val>max) throw new Exception("Value out of range");
+            return val;
+        }
+        static double readNumber(String prompt, double min, double max) throws Exception {
+            double val = Double.parseDouble(readString(prompt));
+            if(val<min || val>max) throw new Exception("Value out of range");
+            return val;
+        }
+    }
+
+    static class RetryUtil {
+        static <T> T executeWithRetry(Supplier<T> op, int max, long delay) throws Exception {
+            for(int i=0;i<max;i++){
+                try{ return op.get(); } catch(Exception e){
+                    if(i==max-1) throw e;
+                    Thread.sleep(delay); delay*=2;
+                }
+            }
+            throw new Exception("Max retries exceeded");
+        }
+    }
+
+    // Observer
+    interface Observer { void update(double temp); }
+    static class TemperatureSensor {
+        private final List<Observer> obs = new ArrayList<>();
+        private double temp;
+        void attach(Observer o){ obs.add(o); }
+        void setTemperature(double t){ temp=t; obs.forEach(o->o.update(t)); }
+    }
+
+    // Strategy
+    interface RouteStrategy { String calculateRoute(String start, String end); }
+
+    // Builder
+    static class Coffee {
+        String base, milk, syrup; boolean foam;
+        public String toString() { return base+" with "+milk+", "+syrup+(foam?" + foam":""); }
+    }
+    static class CoffeeBuilder {
+        Coffee coffee = new Coffee();
+        CoffeeBuilder setBase(String b){ coffee.base=b; return this; }
+        CoffeeBuilder addMilk(String m){ coffee.milk=m; return this; }
+        CoffeeBuilder addSyrup(String s){ coffee.syrup=s; return this; }
+        CoffeeBuilder addFoam(){ coffee.foam=true; return this; }
+        Coffee build(){ return coffee; }
+    }
+
+    // Prototype
+    static class Knight {
+        String armor, weapon;
+        Knight(String a, String w){ armor=a; weapon=w; }
+        Knight clone(){ return new Knight(armor, weapon); }
+        void setArmor(String a){ armor=a; } void setWeapon(String w){ weapon=w; }
+        public String toString(){ return armor+" armor, "+weapon; }
+    }
+
+    // Adapter
+    static class LegacyTerminal {
+        boolean process(String card,double amt){ return true; } // Simplified
+    }
+    static class PaymentAdapter {
+        LegacyTerminal legacy; PaymentAdapter(LegacyTerminal l){legacy=l;}
+        boolean pay(String c,double amt){ return legacy.process(c,amt);}
+    }
+
+    // Composite
+    interface HomeComponent { void display(int indent); }
+    static class Window implements HomeComponent { public void display(int i){System.out.println("  ".repeat(i)+"Window");} }
+    static class Door implements HomeComponent { public void display(int i){System.out.println("  ".repeat(i)+"Door");} }
+    static class Wall implements HomeComponent {
+        List<HomeComponent> children = new ArrayList<>();
+        void add(HomeComponent c){children.add(c);}
+        public void display(int i){System.out.println("  ".repeat(i)+"Wall"); children.forEach(c->c.display(i+1));}
+    }
+}
